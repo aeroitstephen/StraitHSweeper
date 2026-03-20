@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Strait Sweeper</title>
+    <style>
+      :root {
+        --sea-deep: #274a80;
+        --sea-mid: #4768a8;
+        --sea-shallow: #2b768f;
+        --sand-1: #efe2c4;
+        --sand-2: #c7b08b;
+        --rock-1: #9f8a73;
+        --rock-2: #6f6559;
+        --grid-closed: #d8d8d8;
+        --grid-edge-light: #fbfbfb;
+        --grid-edge-dark: #a8a8a8;
+        --grid-open: #cfcfcf;
+        --hud: rgba(255, 255, 255, 0.96);
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: #101217;
+        color: white;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        padding: 0;
+      }
+
+      .phone {
+        position: relative;
+        width: min(100vw, 430px);
+        height: min(100dvh, 932px);
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 74%, rgba(38, 108, 123, 0.55), transparent 10%),
+          radial-gradient(circle at 70% 82%, rgba(41, 81, 155, 0.28), transparent 18%),
+          linear-gradient(180deg, #cdbd99 0%, #beb29b 18%, #cbc4b7 28%, #c8c0b2 34%, #41618a 62%, #26396a 100%);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 25px 80px rgba(0,0,0,0.45);
+      }
+
+      .map {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      .terrain-noise,
+      .sea-noise,
+      .coast-glow,
+      .northland,
+      .southland,
+      .island,
+      .strait-cover,
+      .open-patch,
+      .board-layer,
+      .story-ui,
+      .reply-bar,
+      .tanker,
+      .status-chip,
+      .mission-copy {
+        position: absolute;
+      }
+
+      .terrain-noise {
+        inset: 0;
+        background:
+          radial-gradient(circle at 15% 6%, rgba(255,255,255,0.34), transparent 10%),
+          radial-gradient(circle at 30% 10%, rgba(126,108,84,0.33), transparent 12%),
+          radial-gradient(circle at 45% 18%, rgba(255,255,255,0.25), transparent 11%),
+          radial-gradient(circle at 62% 11%, rgba(102,87,69,0.33), transparent 14%),
+          radial-gradient(circle at 78% 20%, rgba(255,255,255,0.22), transparent 11%),
+          radial-gradient(circle at 70% 44%, rgba(255,255,255,0.15), transparent 15%),
+          radial-gradient(circle at 25% 85%, rgba(227,153,111,0.4), transparent 18%),
+          radial-gradient(circle at 55% 92%, rgba(77,71,69,0.3), transparent 22%),
+          radial-gradient(circle at 85% 74%, rgba(49,73,123,0.18), transparent 22%);
+        mix-blend-mode: multiply;
+        opacity: 0.8;
+      }
+
+      .sea-noise {
+        inset: 58% 0 0 0;
+        background:
+          radial-gradient(circle at 18% 30%, rgba(42, 123, 133, 0.22), transparent 12%),
+          radial-gradient(circle at 72% 50%, rgba(255, 255, 255, 0.08), transparent 10%),
+          radial-gradient(circle at 90% 20%, rgba(22, 35, 74, 0.35), transparent 16%),
+          linear-gradient(180deg, rgba(88, 111, 177, 0.92), rgba(33, 51, 97, 0.98));
+      }
+
+      .board-layer {
+        left: -5%;
+        right: 2%;
+        top: 31%;
+        bottom: 17%;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 2px;
+        padding: 0;
+        z-index: 1;
+      }
+
+      .tile {
+        border: 0;
+        border-radius: 0;
+        aspect-ratio: 1;
+        background: var(--grid-closed);
+        box-shadow:
+          inset 2px 2px 0 var(--grid-edge-light),
+          inset -2px -2px 0 var(--grid-edge-dark);
+        color: transparent;
+        font-family: "Arial", sans-serif;
+        font-weight: 700;
+        font-size: clamp(14px, 2.5vw, 23px);
+        line-height: 1;
+        padding: 0;
+      }
+
+      .tile.revealed {
+        background: var(--grid-open);
+        box-shadow: inset 1px 1px 0 rgba(255,255,255,0.35), inset -1px -1px 0 rgba(0,0,0,0.16);
+      }
+
+      .tile.flagged {
+        color: #cc1414;
+      }
+
+      .tile.mine-hit {
+        background: #c92525;
+        box-shadow: inset 1px 1px 0 rgba(255,255,255,0.22), inset -1px -1px 0 rgba(0,0,0,0.28);
+      }
+
+      .tile.revealed[data-value="1"] { color: #1a34d2; }
+      .tile.revealed[data-value="2"] { color: #188222; }
+      .tile.revealed[data-value="3"] { color: #d02a22; }
+      .tile.revealed[data-value="4"] { color: #11268a; }
+      .tile.revealed[data-value="5"] { color: #7e1212; }
+      .tile.revealed[data-value="6"] { color: #1b7d7d; }
+      .tile.revealed[data-value="7"] { color: #111; }
+      .tile.revealed[data-value="8"] { color: #585858; }
+
+      .northland,
+      .southland,
+      .island {
+        background:
+          radial-gradient(circle at 28% 30%, rgba(255,255,255,0.26), transparent 18%),
+          radial-gradient(circle at 65% 70%, rgba(79,66,56,0.34), transparent 20%),
+          radial-gradient(circle at 52% 48%, rgba(214,184,147,0.24), transparent 22%),
+          linear-gradient(135deg, var(--sand-1), var(--sand-2) 38%, var(--rock-1) 66%, var(--rock-2));
+        box-shadow: 0 0 0 4px rgba(9, 96, 120, 0.95);
+        filter: saturate(0.9) contrast(1.02);
+        z-index: 3;
+      }
+
+      .northland {
+        inset: -2% 0 55% -4%;
+        clip-path: polygon(0 0, 100% 0, 100% 62%, 90% 65%, 82% 63%, 74% 67%, 64% 65%, 53% 69%, 43% 72%, 36% 76%, 31% 79%, 27% 82%, 23% 82%, 16% 81%, 12% 84%, 8% 86%, 0 87%);
+      }
+
+      .southland {
+        inset: 53% 18% -3% 6%;
+        clip-path: polygon(34% 0, 45% 5%, 50% 12%, 53% 20%, 56% 24%, 58% 32%, 60% 37%, 62% 44%, 61% 49%, 65% 54%, 67% 61%, 66% 68%, 71% 74%, 74% 82%, 78% 88%, 81% 100%, 0 100%, 0 58%, 9% 54%, 16% 47%, 21% 42%, 26% 36%, 31% 27%, 33% 15%);
+      }
+
+      .island {
+        left: 2%;
+        top: 39%;
+        width: 42%;
+        height: 10%;
+        clip-path: polygon(0 39%, 8% 30%, 18% 18%, 26% 9%, 38% 6%, 53% 2%, 65% 5%, 82% 9%, 95% 18%, 100% 29%, 89% 42%, 80% 46%, 71% 58%, 61% 69%, 47% 77%, 31% 85%, 16% 81%, 5% 70%);
+      }
+
+      .strait-cover {
+        left: 35%;
+        right: 13%;
+        top: 30%;
+        height: 7.4%;
+        background: #d0d0d0;
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(120,120,120,0.42);
+        z-index: 2;
+      }
+
+      .open-patch {
+        left: 26.5%;
+        top: 42.2%;
+        width: 34%;
+        height: 11.8%;
+        background: transparent;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .open-patch::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, transparent 0 2%, rgba(207,207,207,0.94) 2% 98%, transparent 98%),
+          linear-gradient(180deg, transparent 0 2%, rgba(207,207,207,0.94) 2% 98%, transparent 98%);
+        opacity: 0;
+      }
+
+      .tanker {
+        top: 30.5%;
+        left: 47%;
+        z-index: 4;
+        font-size: 2rem;
+        transform: translate(-50%, -50%);
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+      }
+
+      .tanker::before {
+        content: "🛢️";
+      }
+
+      .status-chip {
+        top: 30.8%;
+        left: 43.5%;
+        z-index: 4;
+        width: 46px;
+        height: 46px;
+        border-radius: 4px;
+        background: rgba(224, 224, 224, 0.92);
+        border: 1px solid rgba(0,0,0,0.2);
+        display: grid;
+        place-items: center;
+        font-size: 1.9rem;
+        transform: translate(-100%, -50%);
+        color: #111;
+      }
+
+      .mission-copy {
+        top: 5.8rem;
+        left: 1.5rem;
+        right: 5rem;
+        z-index: 5;
+        color: white;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.36);
+      }
+
+      .mission-copy h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+      }
+
+      .mission-copy p {
+        margin: 0.25rem 0 0;
+        font-size: 0.95rem;
+        opacity: 0.9;
+      }
+
+      .story-ui {
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+      }
+
+      .top-bar {
+        position: absolute;
+        top: 2rem;
+        left: 1.3rem;
+        right: 1.3rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.35);
+      }
+
+      .top-left {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        font-size: 1.2rem;
+      }
+
+      .author-row {
+        position: absolute;
+        top: 6.2rem;
+        left: 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+      }
+
+      .avatar,
+      .mini-avatar,
+      .bottom-avatar {
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 30%, #f7e4cb, #8a5f44 55%, #31251f 100%);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.32);
+      }
+
+      .avatar {
+        width: 52px;
+        height: 52px;
+      }
+
+      .author-meta strong,
+      .author-meta span,
+      .bottom-caption,
+      .likes-line,
+      .caption-line {
+        display: block;
+      }
+
+      .author-meta strong { font-size: 1rem; }
+      .author-meta span { font-size: 0.88rem; opacity: 0.8; }
+
+      .right-rail {
+        position: absolute;
+        right: 1.05rem;
+        top: 26%;
+        display: grid;
+        gap: 1.35rem;
+        justify-items: center;
+      }
+
+      .rail-item {
+        display: grid;
+        gap: 0.35rem;
+        justify-items: center;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .icon-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-size: 2.2rem;
+        color: white;
+      }
+
+      .bottom-meta {
+        position: absolute;
+        left: 1rem;
+        right: 5rem;
+        bottom: 7.5rem;
+        display: grid;
+        gap: 0.65rem;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.34);
+      }
+
+      .bottom-user {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+
+      .bottom-avatar {
+        width: 56px;
+        height: 56px;
+        box-shadow: 0 0 0 3px #ff9a00, 0 0 0 6px #ff2d95;
+      }
+
+      .follow-pill {
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: 999px;
+        padding: 0.45rem 1rem;
+        font-weight: 700;
+      }
+
+      .caption-line {
+        font-size: 0.98rem;
+        line-height: 1.35;
+      }
+
+      .reply-bar {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1.2rem;
+        height: 4.15rem;
+        border-radius: 999px;
+        background: rgba(26, 29, 35, 0.95);
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.2rem 0 1.45rem;
+        box-shadow: var(--shadow);
+      }
+
+      .reply-text {
+        color: rgba(255,255,255,0.92);
+        font-size: 1rem;
+      }
+
+      .reply-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 1.8rem;
+      }
+
+      .hud-controls {
+        position: absolute;
+        left: 1rem;
+        right: 1rem;
+        bottom: 6rem;
+        display: flex;
+        gap: 0.6rem;
+        z-index: 6;
+      }
+
+      .hud-button {
+        pointer-events: auto;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.16);
+        color: white;
+        padding: 0.6rem 0.95rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        backdrop-filter: blur(12px);
+      }
+
+      .hud-button.primary {
+        background: rgba(10, 21, 52, 0.6);
+      }
+
+      .game-banner {
+        position: absolute;
+        left: 1rem;
+        right: 1rem;
+        bottom: 10.45rem;
+        z-index: 6;
+        padding: 0.65rem 0.85rem;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(10px);
+        font-size: 0.85rem;
+        line-height: 1.35;
+      }
+
+      .game-banner strong {
+        display: block;
+        margin-bottom: 0.2rem;
+      }
+
+      @media (max-width: 390px) {
+        .phone { width: 100vw; height: 100dvh; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="phone">
+      <div class="map">
+        <div class="terrain-noise"></div>
+        <div class="sea-noise"></div>
+        <div id="board" class="board-layer" aria-label="Minesweeper board"></div>
+        <div class="strait-cover"></div>
+        <div class="northland"></div>
+        <div class="island"></div>
+        <div class="southland"></div>
+        <div id="status-chip" class="status-chip">🙂</div>
+        <div id="tanker" class="tanker" aria-hidden="true"></div>
+      </div>
+
+      <div class="mission-copy">
+        <h1>Strait Sweeper</h1>
+        <p id="message">Guide the tanker through the Strait. Tap cells to reveal safe water and mark suspected mines.</p>
+      </div>
+
+      <div class="story-ui">
+        <div class="top-bar">
+          <div class="top-left"><span>2:52</span><span>◀</span></div>
+          <div>📶  📡  69</div>
+        </div>
+
+        <div class="author-row">
+          <div class="avatar"></div>
+          <div class="author-meta">
+            <strong>Mark Spencer</strong>
+            <span>24m ago</span>
+          </div>
+        </div>
+
+        <div class="right-rail">
+          <div class="rail-item"><div class="icon-circle">♡</div><div>279K</div></div>
+          <div class="rail-item"><div class="icon-circle">💬</div><div>3,013</div></div>
+          <div class="rail-item"><div class="icon-circle">↻</div><div>12.4K</div></div>
+          <div class="rail-item"><div class="icon-circle">✈</div><div>835K</div></div>
+          <div class="rail-item"><div class="mini-avatar avatar" style="width:46px;height:46px"></div></div>
+        </div>
+
+        <div class="bottom-meta">
+          <div class="bottom-user">
+            <div class="bottom-avatar"></div>
+            <strong>colvilleandersen</strong>
+            <span class="follow-pill">Follow</span>
+          </div>
+          <span class="caption-line">#Minesweeper began as a computer puzzle in the late 1980s. This version turns the Strait into the board.</span>
+          <span class="likes-line">Liked by ideaesthesia and 279,298 others</span>
+        </div>
+      </div>
+
+      <div class="game-banner">
+        <strong id="hud-title">32 mines • 0 flagged</strong>
+        <span id="hud-status">Hull intact. Reach the open Gulf by revealing every safe tile.</span>
+      </div>
+
+      <div class="hud-controls">
+        <button id="new-game" class="hud-button primary">New Passage</button>
+        <button id="toggle-marks" class="hud-button">Mark Mode: Off</button>
+      </div>
+
+      <div class="reply-bar">
+        <span class="reply-text">Reply to Mark Spencer...</span>
+        <div class="reply-actions"><span>❤️</span><span>😂</span><span>😮</span><span>＋</span></div>
+      </div>
+    </main>
+
+    <script>
+      const rows = 16;
+      const cols = 12;
+      const minesTotal = 32;
+
+      const boardEl = document.getElementById('board');
+      const messageEl = document.getElementById('message');
+      const hudTitleEl = document.getElementById('hud-title');
+      const hudStatusEl = document.getElementById('hud-status');
+      const newGameBtn = document.getElementById('new-game');
+      const toggleMarksBtn = document.getElementById('toggle-marks');
+      const tankerEl = document.getElementById('tanker');
+      const statusChipEl = document.getElementById('status-chip');
+
+      let board = [];
+      let revealedCount = 0;
+      let flagsPlaced = 0;
+      let gameOver = false;
+      let markMode = false;
+
+      function initGame() {
+        board = createBoard();
+        revealedCount = 0;
+        flagsPlaced = 0;
+        gameOver = false;
+        markMode = false;
+        messageEl.textContent = 'Guide the tanker through the Strait. Tap cells to reveal safe water and mark suspected mines.';
+        hudTitleEl.textContent = `${minesTotal} mines • ${flagsPlaced} flagged`;
+        hudStatusEl.textContent = 'Hull intact. Reach the open Gulf by revealing every safe tile.';
+        statusChipEl.textContent = '🙂';
+        toggleMarksBtn.textContent = 'Mark Mode: Off';
+        renderBoard();
+        updateTankerPosition();
+      }
+
+      function createBoard() {
+        const grid = Array.from({ length: rows }, (_, row) =>
+          Array.from({ length: cols }, (_, col) => ({ row, col, mine: false, revealed: false, flagged: false, count: 0 }))
+        );
+
+        let placed = 0;
+        while (placed < minesTotal) {
+          const row = Math.floor(Math.random() * rows);
+          const col = Math.floor(Math.random() * cols);
+          if (!grid[row][col].mine) {
+            grid[row][col].mine = true;
+            placed += 1;
+          }
+        }
+
+        for (const tile of grid.flat()) {
+          tile.count = neighbors(tile.row, tile.col).filter(([r, c]) => grid[r][c].mine).length;
+        }
+
+        return grid;
+      }
+
+      function neighbors(row, col) {
+        const points = [];
+        for (let dr = -1; dr <= 1; dr += 1) {
+          for (let dc = -1; dc <= 1; dc += 1) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = row + dr;
+            const nc = col + dc;
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) points.push([nr, nc]);
+          }
+        }
+        return points;
+      }
+
+      function renderBoard() {
+        boardEl.innerHTML = '';
+        board.flat().forEach((tile) => {
+          const button = document.createElement('button');
+          button.className = 'tile';
+          button.dataset.row = tile.row;
+          button.dataset.col = tile.col;
+          button.type = 'button';
+          button.setAttribute('aria-label', `row ${tile.row + 1}, column ${tile.col + 1}`);
+
+          if (tile.revealed) {
+            button.classList.add('revealed');
+            if (tile.mine) {
+              button.classList.add('mine-hit');
+              button.textContent = '✹';
+              button.style.color = '#111';
+            } else if (tile.count > 0) {
+              button.textContent = tile.count;
+              button.dataset.value = tile.count;
+            }
+          } else if (tile.flagged) {
+            button.classList.add('flagged');
+            button.textContent = '⚑';
+          }
+
+          button.addEventListener('click', () => handleTileAction(tile.row, tile.col, markMode));
+          button.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            handleTileAction(tile.row, tile.col, true);
+          });
+
+          boardEl.appendChild(button);
+        });
+      }
+
+      function handleTileAction(row, col, forceFlag = false) {
+        if (gameOver) return;
+        const tile = board[row][col];
+        if (tile.revealed) return;
+
+        if (forceFlag) {
+          tile.flagged = !tile.flagged;
+          flagsPlaced += tile.flagged ? 1 : -1;
+          hudTitleEl.textContent = `${minesTotal} mines • ${flagsPlaced} flagged`;
+          hudStatusEl.textContent = tile.flagged ? 'Mine marker placed on the chart.' : 'Marker cleared. Keep plotting a safe lane.';
+          renderBoard();
+          return;
+        }
+
+        if (tile.flagged) return;
+
+        if (tile.mine) {
+          tile.revealed = true;
+          messageEl.textContent = 'Mine strike! The tanker hit an explosive and the transit failed.';
+          hudStatusEl.textContent = 'Hull breached. Start a new passage and try another route.';
+          statusChipEl.textContent = '😵';
+          gameOver = true;
+          revealAllMines();
+          renderBoard();
+          updateTankerPosition(tile.col, tile.row, true);
+          return;
+        }
+
+        floodReveal(row, col);
+        renderBoard();
+        updateTankerPosition();
+
+        if (revealedCount === rows * cols - minesTotal) {
+          gameOver = true;
+          messageEl.textContent = 'Safe passage secured. The tanker cleared the Strait of Hormuz.';
+          hudStatusEl.textContent = 'Convoy complete. Every safe water tile has been charted.';
+          statusChipEl.textContent = '😎';
+        } else {
+          messageEl.textContent = 'Channel updated. Continue tracing the safest path through the water grid.';
+          hudStatusEl.textContent = 'Hull intact. Each number indicates adjacent mines.';
+        }
+      }
+
+      function floodReveal(startRow, startCol) {
+        const stack = [[startRow, startCol]];
+        while (stack.length) {
+          const [row, col] = stack.pop();
+          const tile = board[row][col];
+          if (tile.revealed || tile.flagged) continue;
+          tile.revealed = true;
+          revealedCount += 1;
+
+          if (tile.count === 0) {
+            neighbors(row, col).forEach(([nr, nc]) => {
+              const next = board[nr][nc];
+              if (!next.revealed && !next.mine) stack.push([nr, nc]);
+            });
+          }
+        }
+      }
+
+      function revealAllMines() {
+        board.flat().forEach((tile) => {
+          if (tile.mine) tile.revealed = true;
+        });
+      }
+
+      function updateTankerPosition(colOverride, rowOverride, danger = false) {
+        const safeTiles = board.flat().filter((tile) => tile.revealed && !tile.mine);
+        const furthest = safeTiles.reduce((best, tile) => {
+          const score = tile.col * 10 - Math.abs(tile.row - 2);
+          return score > best.score ? { score, tile } : best;
+        }, { score: -Infinity, tile: { row: 0, col: 5 } }).tile;
+
+        const col = colOverride ?? furthest.col;
+        const row = rowOverride ?? furthest.row;
+
+        tankerEl.style.left = `${35 + (col / (cols - 1)) * 34}%`;
+        tankerEl.style.top = `${31 + (row / (rows - 1)) * 19}%`;
+        tankerEl.style.transform = `translate(-50%, -50%) scale(${danger ? 1.14 : 1}) rotate(${danger ? -12 : 0}deg)`;
+      }
+
+      newGameBtn.addEventListener('click', initGame);
+      toggleMarksBtn.addEventListener('click', () => {
+        markMode = !markMode;
+        toggleMarksBtn.textContent = `Mark Mode: ${markMode ? 'On' : 'Off'}`;
+      });
+
+      initGame();
+    </script>
+  </body>
+</html>
