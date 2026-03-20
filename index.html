@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Strait Sweeper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <p class="eyebrow">Strategic transit simulator</p>
+          <h1>Strait Sweeper</h1>
+          <p class="lede">
+            Guide an oil tanker through a mine-ridden Strait of Hormuz. Each safe reveal maps a lane,
+            each number hints at nearby threats, and every move is a high-stakes navigation decision.
+          </p>
+          <div class="controls">
+            <button id="new-game" class="primary">New Passage</button>
+            <button id="toggle-marks" class="secondary">Mark Mode: Off</button>
+          </div>
+          <div class="status-grid">
+            <div class="status-card">
+              <span class="label">Threats</span>
+              <strong id="mine-count">0</strong>
+            </div>
+            <div class="status-card">
+              <span class="label">Marked</span>
+              <strong id="flag-count">0</strong>
+            </div>
+            <div class="status-card">
+              <span class="label">Hull</span>
+              <strong id="hull-status">Intact</strong>
+            </div>
+          </div>
+        </div>
+        <div class="map-panel" aria-hidden="true">
+          <div class="satellite-frame">
+            <div class="landmass landmass-north"></div>
+            <div class="landmass landmass-south"></div>
+            <div class="shipping-lane lane-a"></div>
+            <div class="shipping-lane lane-b"></div>
+            <div class="shipping-lane lane-c"></div>
+            <div id="tanker" class="tanker">🛢️</div>
+            <div class="grid-overlay"></div>
+          </div>
+          <p class="caption">Satellite-inspired briefing map with navigable minefield overlay.</p>
+        </div>
+      </section>
+
+      <section class="game-card">
+        <div class="game-header">
+          <div>
+            <h2>Transit Grid</h2>
+            <p id="message">Plot a safe route from the Gulf to open water.</p>
+          </div>
+          <div class="legend">
+            <span><i class="safe"></i> Cleared channel</span>
+            <span><i class="mark"></i> Suspected mine</span>
+            <span><i class="mine"></i> Mine strike</span>
+          </div>
+        </div>
+        <div id="board" class="board" aria-label="Minesweeper board"></div>
+      </section>
+
+      <section class="instructions-card">
+        <h3>Mission Rules</h3>
+        <ul>
+          <li>Reveal every safe tile to complete the tanker passage.</li>
+          <li>Numbers show how many mines are touching that tile.</li>
+          <li>Use <strong>Mark Mode</strong> or right-click to flag suspected mines.</li>
+          <li>The tanker advances east as you clear the channel.</li>
+        </ul>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
