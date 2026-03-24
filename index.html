@@ -18,39 +18,64 @@
         --grid-edge-dark: #a8a8a8;
         --grid-open: #cfcfcf;
         --hud: rgba(255, 255, 255, 0.96);
-        --shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       }
 
       * { box-sizing: border-box; }
-      html, body {
-        margin: 0;
-        min-height: 100%;
-        background: #101217;
-        color: white;
+
+      html {
+        height: 100%;
+        background: #26396a;
       }
 
       body {
-        display: grid;
-        place-items: center;
-        padding: 0;
+        margin: 0;
+        height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        background: #26396a;
+        color: white;
       }
 
       .phone {
         position: relative;
-        width: min(100vw, 430px);
-        height: min(100dvh, 932px);
+        width: 100%;
+        max-width: 480px;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
         background:
           radial-gradient(circle at 18% 74%, rgba(38, 108, 123, 0.55), transparent 10%),
           radial-gradient(circle at 70% 82%, rgba(41, 81, 155, 0.28), transparent 18%),
           linear-gradient(180deg, #cdbd99 0%, #beb29b 18%, #cbc4b7 28%, #c8c0b2 34%, #41618a 62%, #26396a 100%);
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 25px 80px rgba(0,0,0,0.45);
+      }
+
+      .game-header {
+        flex-shrink: 0;
+        padding: env(safe-area-inset-top, 0.75rem) 1.25rem 0.5rem;
+        z-index: 5;
+        color: white;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      }
+
+      .game-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .game-header p {
+        margin: 0.2rem 0 0;
+        font-size: 0.88rem;
+        opacity: 0.9;
+        line-height: 1.35;
       }
 
       .map {
-        position: absolute;
-        inset: 0;
+        position: relative;
+        flex: 1;
         overflow: hidden;
       }
 
@@ -63,11 +88,8 @@
       .strait-cover,
       .open-patch,
       .board-layer,
-      .story-ui,
-      .reply-bar,
       .tanker,
-      .status-chip,
-      .mission-copy {
+      .status-chip {
         position: absolute;
       }
 
@@ -237,181 +259,30 @@
         color: #111;
       }
 
-      .mission-copy {
-        top: 5.8rem;
-        left: 1.5rem;
-        right: 5rem;
-        z-index: 5;
-        color: white;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.36);
-      }
-
-      .mission-copy h1 {
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 700;
-      }
-
-      .mission-copy p {
-        margin: 0.25rem 0 0;
-        font-size: 0.95rem;
-        opacity: 0.9;
-      }
-
-      .story-ui {
-        inset: 0;
-        z-index: 5;
-        pointer-events: none;
-      }
-
-      .top-bar {
-        position: absolute;
-        top: 2rem;
-        left: 1.3rem;
-        right: 1.3rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: 700;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.35);
-      }
-
-      .top-left {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        font-size: 1.2rem;
-      }
-
-      .author-row {
-        position: absolute;
-        top: 6.2rem;
-        left: 1.3rem;
-        display: flex;
-        align-items: center;
-        gap: 0.9rem;
-      }
-
-      .avatar,
-      .mini-avatar,
-      .bottom-avatar {
-        border-radius: 999px;
-        background: radial-gradient(circle at 35% 30%, #f7e4cb, #8a5f44 55%, #31251f 100%);
-        box-shadow: 0 0 0 3px rgba(255,255,255,0.32);
-      }
-
-      .avatar {
-        width: 52px;
-        height: 52px;
-      }
-
-      .author-meta strong,
-      .author-meta span,
-      .bottom-caption,
-      .likes-line,
-      .caption-line {
-        display: block;
-      }
-
-      .author-meta strong { font-size: 1rem; }
-      .author-meta span { font-size: 0.88rem; opacity: 0.8; }
-
-      .right-rail {
-        position: absolute;
-        right: 1.05rem;
-        top: 26%;
-        display: grid;
-        gap: 1.35rem;
-        justify-items: center;
-      }
-
-      .rail-item {
-        display: grid;
-        gap: 0.35rem;
-        justify-items: center;
-        font-size: 0.95rem;
-        font-weight: 600;
-      }
-
-      .icon-circle {
-        width: 50px;
-        height: 50px;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        font-size: 2.2rem;
-        color: white;
-      }
-
-      .bottom-meta {
-        position: absolute;
-        left: 1rem;
-        right: 5rem;
-        bottom: 7.5rem;
-        display: grid;
-        gap: 0.65rem;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.34);
-      }
-
-      .bottom-user {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-      }
-
-      .bottom-avatar {
-        width: 56px;
-        height: 56px;
-        box-shadow: 0 0 0 3px #ff9a00, 0 0 0 6px #ff2d95;
-      }
-
-      .follow-pill {
-        border: 1px solid rgba(255,255,255,0.4);
-        border-radius: 999px;
-        padding: 0.45rem 1rem;
-        font-weight: 700;
-      }
-
-      .caption-line {
-        font-size: 0.98rem;
-        line-height: 1.35;
-      }
-
-      .reply-bar {
-        left: 1rem;
-        right: 1rem;
-        bottom: 1.2rem;
-        height: 4.15rem;
-        border-radius: 999px;
-        background: rgba(26, 29, 35, 0.95);
+      .game-footer {
+        flex-shrink: 0;
         z-index: 6;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.2rem 0 1.45rem;
-        box-shadow: var(--shadow);
+        padding: 0.4rem 0.75rem env(safe-area-inset-bottom, 0.75rem);
       }
 
-      .reply-text {
-        color: rgba(255,255,255,0.92);
-        font-size: 1rem;
+      .game-banner {
+        padding: 0.6rem 0.85rem;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(10px);
+        font-size: 0.85rem;
+        line-height: 1.35;
+        margin-bottom: 0.45rem;
       }
 
-      .reply-actions {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        font-size: 1.8rem;
+      .game-banner strong {
+        display: block;
+        margin-bottom: 0.2rem;
       }
 
       .hud-controls {
-        position: absolute;
-        left: 1rem;
-        right: 1rem;
-        bottom: 6rem;
         display: flex;
         gap: 0.6rem;
-        z-index: 6;
       }
 
       .hud-button {
@@ -429,33 +300,15 @@
       .hud-button.primary {
         background: rgba(10, 21, 52, 0.6);
       }
-
-      .game-banner {
-        position: absolute;
-        left: 1rem;
-        right: 1rem;
-        bottom: 10.45rem;
-        z-index: 6;
-        padding: 0.65rem 0.85rem;
-        border-radius: 16px;
-        background: rgba(0, 0, 0, 0.28);
-        backdrop-filter: blur(10px);
-        font-size: 0.85rem;
-        line-height: 1.35;
-      }
-
-      .game-banner strong {
-        display: block;
-        margin-bottom: 0.2rem;
-      }
-
-      @media (max-width: 390px) {
-        .phone { width: 100vw; height: 100dvh; }
-      }
     </style>
   </head>
   <body>
     <main class="phone">
+      <div class="game-header">
+        <h1>Strait Sweeper</h1>
+        <p id="message">Guide the tanker through the Strait. Tap cells to reveal safe water and mark suspected mines.</p>
+      </div>
+
       <div class="map">
         <div class="terrain-noise"></div>
         <div class="sea-noise"></div>
@@ -468,57 +321,15 @@
         <div id="tanker" class="tanker" aria-hidden="true"></div>
       </div>
 
-      <div class="mission-copy">
-        <h1>Strait Sweeper</h1>
-        <p id="message">Guide the tanker through the Strait. Tap cells to reveal safe water and mark suspected mines.</p>
-      </div>
-
-      <div class="story-ui">
-        <div class="top-bar">
-          <div class="top-left"><span>2:52</span><span>◀</span></div>
-          <div>📶  📡  69</div>
+      <div class="game-footer">
+        <div class="game-banner">
+          <strong id="hud-title">32 mines • 0 flagged</strong>
+          <span id="hud-status">Hull intact. Reach the open Gulf by revealing every safe tile.</span>
         </div>
-
-        <div class="author-row">
-          <div class="avatar"></div>
-          <div class="author-meta">
-            <strong>Mark Spencer</strong>
-            <span>24m ago</span>
-          </div>
+        <div class="hud-controls">
+          <button id="new-game" class="hud-button primary">New Passage</button>
+          <button id="toggle-marks" class="hud-button">Mark Mode: Off</button>
         </div>
-
-        <div class="right-rail">
-          <div class="rail-item"><div class="icon-circle">♡</div><div>279K</div></div>
-          <div class="rail-item"><div class="icon-circle">💬</div><div>3,013</div></div>
-          <div class="rail-item"><div class="icon-circle">↻</div><div>12.4K</div></div>
-          <div class="rail-item"><div class="icon-circle">✈</div><div>835K</div></div>
-          <div class="rail-item"><div class="mini-avatar avatar" style="width:46px;height:46px"></div></div>
-        </div>
-
-        <div class="bottom-meta">
-          <div class="bottom-user">
-            <div class="bottom-avatar"></div>
-            <strong>colvilleandersen</strong>
-            <span class="follow-pill">Follow</span>
-          </div>
-          <span class="caption-line">#Minesweeper began as a computer puzzle in the late 1980s. This version turns the Strait into the board.</span>
-          <span class="likes-line">Liked by ideaesthesia and 279,298 others</span>
-        </div>
-      </div>
-
-      <div class="game-banner">
-        <strong id="hud-title">32 mines • 0 flagged</strong>
-        <span id="hud-status">Hull intact. Reach the open Gulf by revealing every safe tile.</span>
-      </div>
-
-      <div class="hud-controls">
-        <button id="new-game" class="hud-button primary">New Passage</button>
-        <button id="toggle-marks" class="hud-button">Mark Mode: Off</button>
-      </div>
-
-      <div class="reply-bar">
-        <span class="reply-text">Reply to Mark Spencer...</span>
-        <div class="reply-actions"><span>❤️</span><span>😂</span><span>😮</span><span>＋</span></div>
       </div>
     </main>
 
