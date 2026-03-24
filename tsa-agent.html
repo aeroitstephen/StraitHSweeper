@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSA Checkpoint B12</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { height: 100%; background: #050d16; }
+
+    body {
+      margin: 0;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      background: #050d16;
+      color: white;
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #08111c;
+    }
+
+    /* ── News ticker ── */
+    .ticker {
+      flex-shrink: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      background: rgba(220, 140, 20, 0.12);
+      border-bottom: 1px solid rgba(220, 140, 20, 0.28);
+      padding: env(safe-area-inset-top, 0.2rem) 0 0.25rem;
+    }
+
+    .ticker-inner {
+      display: inline-block;
+      animation: ticker 50s linear infinite;
+      font-size: 0.68rem;
+      color: #d4921e;
+      letter-spacing: 0.025em;
+      padding-left: 100%;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-100%); }
+    }
+
+    /* ── Header ── */
+    .game-header {
+      flex-shrink: 0;
+      padding: 0.55rem 1rem 0.4rem;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .game-header h1 {
+      margin: 0 0 0.15rem;
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: #e8a832;
+    }
+
+    .game-header p {
+      margin: 0;
+      font-size: 0.76rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.3;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 0.2rem;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.3);
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: rgba(255,255,255,0.6); }
+
+    /* ── Scanner area ── */
+    .scanner-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      transition: filter 0.4s ease;
+    }
+
+    .scanner-wrap.stressed     { filter: blur(0.5px); }
+    .scanner-wrap.very-stressed { filter: blur(1.5px) brightness(0.85); }
+
+    /* Moving belt */
+    .belt {
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          rgba(255,255,255,0.025) 0px 18px,
+          rgba(255,255,255,0.065) 18px 22px,
+          rgba(255,255,255,0.025) 22px 40px
+        ),
+        linear-gradient(180deg, #0c1e30, #07111b);
+      animation: belt 5s linear infinite;
+    }
+
+    @keyframes belt {
+      from { background-position: 0 0; }
+      to   { background-position: 200px 0; }
+    }
+
+    /* Board grid */
+    #board {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      gap: 3px;
+      padding: 5px;
+      z-index: 2;
+    }
+
+    .tile {
+      border: none;
+      border-radius: 4px;
+      background: #152535;
+      box-shadow:
+        inset 1px 1px 0 rgba(80,140,200,0.18),
+        inset -1px -1px 0 rgba(0,0,0,0.55);
+      cursor: pointer;
+      color: transparent;
+      font-weight: 800;
+      font-size: clamp(10px, 2vw, 17px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      user-select: none;
+      transition: background 0.08s, transform 0.08s;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .tile:active { transform: scale(0.9); }
+
+    .tile.revealed {
+      background: #b87428;
+      box-shadow:
+        inset 0 0 8px rgba(255,180,60,0.25),
+        inset -1px -1px 0 rgba(0,0,0,0.4);
+      color: rgba(10,5,0,0.9);
+    }
+
+    .tile.threat {
+      background: #6e1010;
+      box-shadow: inset 0 0 10px rgba(200,30,30,0.4);
+      color: #ff8888;
+      font-size: clamp(12px, 2.5vw, 20px);
+    }
+
+    .tile.marked {
+      background: #14301a;
+      color: #55bb66;
+      box-shadow:
+        inset 1px 1px 0 rgba(60,160,80,0.2),
+        inset -1px -1px 0 rgba(0,0,0,0.4);
+    }
+
+    /* X-ray number palette */
+    .tile.revealed[data-n="1"] { color: #1a5fa8; }
+    .tile.revealed[data-n="2"] { color: #1a7040; }
+    .tile.revealed[data-n="3"] { color: #b53a22; }
+    .tile.revealed[data-n="4"] { color: #4e2ba8; }
+    .tile.revealed[data-n="5"] { color: #8c1a30; }
+    .tile.revealed[data-n="6"] { color: #0e6060; }
+    .tile.revealed[data-n="7"] { color: #101418; }
+    .tile.revealed[data-n="8"] { color: #3d4650; }
+
+    /* ── ICE agents overlay ── */
+    #agents {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    .ice-agent {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 9;
+      user-select: none;
+      filter: drop-shadow(0 0 5px rgba(80,140,255,0.85));
+      transition: filter 0.15s;
+    }
+
+    .ice-agent:hover { filter: drop-shadow(0 0 9px rgba(80,160,255,1)); }
+
+    .ice-agent.shooing {
+      pointer-events: none;
+      filter: drop-shadow(0 0 3px rgba(80,140,255,0.3));
+    }
+
+    .speech-bubble {
+      position: absolute;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14, 40, 100, 0.95);
+      border: 1px solid rgba(80,140,255,0.45);
+      border-radius: 7px;
+      padding: 0.2rem 0.45rem;
+      font-size: 0.6rem;
+      white-space: nowrap;
+      pointer-events: none;
+      color: #99c0ff;
+      animation: bubbleFade 2s ease-out forwards;
+    }
+
+    @keyframes bubbleFade {
+      0%,45% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100%    { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    }
+
+    /* ── Footer HUD ── */
+    .game-footer {
+      flex-shrink: 0;
+      padding: 0.5rem 0.85rem calc(env(safe-area-inset-bottom, 0.4rem) + 0.35rem);
+      background: rgba(4, 10, 20, 0.95);
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+
+    #hud-msg {
+      margin: 0 0 0.35rem;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.3;
+      min-height: 1.7em;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 0.35rem;
+    }
+
+    .hud-row strong { color: white; }
+
+    .stress-track {
+      height: 5px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 0.45rem;
+    }
+
+    #stress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      background: #4caf50;
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .hud-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .hud-button {
+      flex: 1;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .hud-button.primary {
+      background: rgba(232, 168, 50, 0.2);
+      color: #e8a832;
+      border: 1px solid rgba(232, 168, 50, 0.35);
+    }
+  </style>
+</head>
+<body>
+<main class="phone">
+
+  <div class="ticker">
+    <span class="ticker-inner">
+      ⚡ ICE agents deployed to TSA checkpoints at 14 major airports &nbsp;·&nbsp;
+      TSA workforce down 11% — agents forced to cover double shifts &nbsp;·&nbsp;
+      REPORT: Screeners say ICE presence disrupts concentration mid-screening &nbsp;·&nbsp;
+      Wait times at domestic terminals up 40% this week &nbsp;·&nbsp;
+      TSA union calls ICE checkpoint operations "dangerous distraction" &nbsp;·&nbsp;
+      Homeland memo: TSA officers must "cooperate fully" with ICE queries &nbsp;·&nbsp;
+      Travelers advised: arrive 3+ hours early for any domestic flight &nbsp;·&nbsp;
+    </span>
+  </div>
+
+  <div class="game-header">
+    <h1>TSA CHECKPOINT B12</h1>
+    <p id="message">You're overworked and understaffed. Scan every bag, flag the threats — and don't let the ICE agents standing around break your concentration.</p>
+    <a class="back-link" href="index.html">← Strait Sweeper</a>
+  </div>
+
+  <div class="scanner-wrap" id="scanner-wrap">
+    <div class="belt"></div>
+    <div id="board" aria-label="Bag scanner grid"></div>
+    <div id="agents" aria-hidden="true"></div>
+  </div>
+
+  <div class="game-footer">
+    <p id="hud-msg">Tap to clear a bag. Numbers = threats touching that spot. Right-click or Mark Mode to flag.</p>
+    <div class="hud-row">
+      <span>💣 <strong id="threat-count">15</strong> hidden</span>
+      <span>✅ <strong id="clear-count">0</strong> cleared</span>
+      <span>Stress <strong id="stress-label">0%</strong></span>
+    </div>
+    <div class="stress-track"><div id="stress-fill"></div></div>
+    <div class="hud-controls">
+      <button id="new-game" class="hud-button primary" type="button">New Shift</button>
+      <button id="toggle-mark" class="hud-button" type="button">Mark Mode: Off</button>
+    </div>
+  </div>
+
+</main>
+<script>
+  const ROWS = 10, COLS = 8, THREATS = 15;
+  const ICE_COUNT = 3, ICE_SPEED = 0.045, TICK_MS = 50;
+  const COVER_RADIUS = 0.62;
+
+  const boardEl      = document.getElementById('board');
+  const agentsEl     = document.getElementById('agents');
+  const scannerWrap  = document.getElementById('scanner-wrap');
+  const messageEl    = document.getElementById('message');
+  const hudMsgEl     = document.getElementById('hud-msg');
+  const threatCountEl= document.getElementById('threat-count');
+  const clearCountEl = document.getElementById('clear-count');
+  const stressLabelEl= document.getElementById('stress-label');
+  const stressFillEl = document.getElementById('stress-fill');
+  const newGameBtn   = document.getElementById('new-game');
+  const toggleMarkBtn= document.getElementById('toggle-mark');
+
+  let board = [], revealedCount = 0, stress = 0;
+  let gameOver = false, markMode = false;
+  let agents = [], tickId = null;
+
+  const ICE_QUIPS = [
+    'Just doing my job.',
+    'Have you seen anyone suspicious?',
+    'Papers, please.',
+    'We\'re just observing.',
+    'Don\'t mind us.',
+    'Routine check.',
+    'We go where we\'re told.',
+    'Nothing to worry about.',
+    'Federal business.',
+  ];
+
+  // ── Board logic ─────────────────────────────────────────
+
+  function buildBoard() {
+    const g = Array.from({length: ROWS}, (_, r) =>
+      Array.from({length: COLS}, (_, c) =>
+        ({r, c, threat: false, revealed: false, marked: false, count: 0})
+      )
+    );
+    let placed = 0;
+    while (placed < THREATS) {
+      const r = Math.floor(Math.random() * ROWS);
+      const c = Math.floor(Math.random() * COLS);
+      if (!g[r][c].threat) { g[r][c].threat = true; placed++; }
+    }
+    g.flat().forEach(t => {
+      t.count = neighbors(t.r, t.c).filter(([nr,nc]) => g[nr][nc].threat).length;
+    });
+    return g;
+  }
+
+  function neighbors(r, c) {
+    const out = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const nr = r+dr, nc = c+dc;
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) out.push([nr, nc]);
+    }
+    return out;
+  }
+
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    board.flat().forEach(t => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tile';
+      if (t.revealed) {
+        if (t.threat) {
+          btn.classList.add('threat');
+          btn.textContent = '💣';
+        } else {
+          btn.classList.add('revealed');
+          if (t.count > 0) { btn.textContent = t.count; btn.dataset.n = t.count; }
+        }
+      } else if (t.marked) {
+        btn.classList.add('marked');
+        btn.textContent = '⚑';
+      }
+      btn.addEventListener('click', () => handleTile(t.r, t.c, markMode));
+      btn.addEventListener('contextmenu', e => { e.preventDefault(); handleTile(t.r, t.c, true); });
+      boardEl.appendChild(btn);
+    });
+  }
+
+  function floodReveal(sr, sc) {
+    const stack = [[sr, sc]];
+    while (stack.length) {
+      const [r, c] = stack.pop();
+      const t = board[r][c];
+      if (t.revealed || t.marked) continue;
+      t.revealed = true;
+      revealedCount++;
+      if (t.count === 0)
+        neighbors(r, c).forEach(([nr,nc]) => {
+          if (!board[nr][nc].revealed && !board[nr][nc].threat) stack.push([nr,nc]);
+        });
+    }
+  }
+
+  function exposeThreats() {
+    board.flat().forEach(t => { if (t.threat) t.revealed = true; });
+  }
+
+  function handleTile(r, c, flag) {
+    if (gameOver) return;
+    const t = board[r][c];
+    if (t.revealed) return;
+
+    if (flag) {
+      t.marked = !t.marked;
+      renderBoard();
+      return;
+    }
+
+    if (t.marked) return;
+
+    // ICE distraction: agent is standing on this tile
+    if (agentCovers(r, c)) {
+      addStress(10);
+      messageEl.textContent = 'An ICE agent is blocking the scanner! You lost your focus.';
+      hudMsgEl.textContent = 'Click the glowing agent to shoo them away first.';
+      return;
+    }
+
+    if (t.threat) {
+      t.revealed = true;
+      addStress(25);
+      gameOver = true;
+      stopTick();
+      exposeThreats();
+      renderBoard();
+      messageEl.textContent = 'Threat in the scanner — you missed it. The ICE chatter had you off your game.';
+      hudMsgEl.textContent = 'Checkpoint compromised. Security incident report filed.';
+      return;
+    }
+
+    floodReveal(r, c);
+    renderBoard();
+    clearCountEl.textContent = revealedCount;
+
+    if (revealedCount >= ROWS * COLS - THREATS) {
+      gameOver = true;
+      stopTick();
+      messageEl.textContent = 'Every bag cleared. You held your focus despite everything they threw at you.';
+      hudMsgEl.textContent = 'Shift complete. The union rep is on the way.';
+    }
+  }
+
+  // ── Stress ──────────────────────────────────────────────
+
+  function addStress(n) {
+    stress = Math.min(100, stress + n);
+    renderStress();
+    if (stress >= 100 && !gameOver) burnout();
+  }
+
+  function renderStress() {
+    stressLabelEl.textContent = stress + '%';
+    stressFillEl.style.width = stress + '%';
+    stressFillEl.style.background =
+      stress < 40 ? '#4caf50' : stress < 70 ? '#ff9800' : '#f44336';
+    if (stress < 40) {
+      scannerWrap.classList.remove('stressed','very-stressed');
+    } else if (stress < 70) {
+      scannerWrap.classList.add('stressed');
+      scannerWrap.classList.remove('very-stressed');
+    } else {
+      scannerWrap.classList.remove('stressed');
+      scannerWrap.classList.add('very-stressed');
+    }
+  }
+
+  function burnout() {
+    gameOver = true;
+    stopTick();
+    exposeThreats();
+    renderBoard();
+    messageEl.textContent = 'You blacked out from exhaustion. The ICE agents finally broke you.';
+    hudMsgEl.textContent = 'Shift over. The line backed up to Terminal C.';
+  }
+
+  // ── ICE agents ───────────────────────────────────────────
+
+  function agentCovers(r, c) {
+    return agents.some(a => !a.shooing && Math.hypot(a.x - c, a.y - r) < COVER_RADIUS);
+  }
+
+  function spawnAgents() {
+    agentsEl.innerHTML = '';
+    agents = [];
+    for (let i = 0; i < ICE_COUNT; i++) {
+      const a = {
+        x:  Math.random() * (COLS - 1),
+        y:  Math.random() * (ROWS - 1),
+        tx: Math.random() * (COLS - 1),
+        ty: Math.random() * (ROWS - 1),
+        shooing: false,
+        el: null,
+      };
+      const el = document.createElement('div');
+      el.className = 'ice-agent';
+      el.textContent = '🕵️';
+      el.addEventListener('click', e => { e.stopPropagation(); shoo(a); });
+      agentsEl.appendChild(el);
+      a.el = el;
+      agents.push(a);
+    }
+  }
+
+  function shoo(a) {
+    if (a.shooing || gameOver) return;
+    a.shooing = true;
+    a.el.classList.add('shooing');
+    addStress(4);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'speech-bubble';
+    bubble.textContent = ICE_QUIPS[Math.floor(Math.random() * ICE_QUIPS.length)];
+    a.el.appendChild(bubble);
+
+    // Walk off the right edge
+    a.tx = COLS + 3;
+    a.ty = a.y;
+
+    setTimeout(() => {
+      bubble.remove();
+      // Re-enter from the left
+      a.x = -2;
+      a.y = 0.5 + Math.random() * (ROWS - 1);
+      a.tx = 1 + Math.random() * (COLS - 2);
+      a.ty = 0.5 + Math.random() * (ROWS - 1);
+      a.shooing = false;
+      a.el.classList.remove('shooing');
+    }, 2400);
+  }
+
+  function tickAgents() {
+    const bRect = boardEl.getBoundingClientRect();
+    const sRect = scannerWrap.getBoundingClientRect();
+    if (!bRect.width) return;
+
+    const offX = bRect.left - sRect.left;
+    const offY = bRect.top  - sRect.top;
+
+    agents.forEach(a => {
+      const dx = a.tx - a.x, dy = a.ty - a.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 0.12) {
+        a.tx = 0.3 + Math.random() * (COLS - 0.6);
+        a.ty = 0.3 + Math.random() * (ROWS - 0.6);
+      } else {
+        const spd = a.shooing ? ICE_SPEED * 4 : ICE_SPEED;
+        a.x += (dx / dist) * spd;
+        a.y += (dy / dist) * spd;
+      }
+
+      // Convert grid coords to px within scanner-wrap
+      const px = offX + bRect.width  * ((a.x + 0.5) / COLS);
+      const py = offY + bRect.height * ((a.y + 0.5) / ROWS);
+      a.el.style.left = px + 'px';
+      a.el.style.top  = py + 'px';
+    });
+  }
+
+  function startTick() { stopTick(); tickId = setInterval(tickAgents, TICK_MS); }
+  function stopTick()  { clearInterval(tickId); tickId = null; }
+
+  // ── Init ─────────────────────────────────────────────────
+
+  function initGame() {
+    stopTick();
+    board = buildBoard();
+    revealedCount = 0;
+    stress = 0;
+    gameOver = false;
+    markMode = false;
+
+    toggleMarkBtn.textContent = 'Mark Mode: Off';
+    threatCountEl.textContent = THREATS;
+    clearCountEl.textContent  = 0;
+    messageEl.textContent = 'You\'re overworked and understaffed. Scan every bag, flag the threats — and don\'t let the ICE agents standing around break your concentration.';
+    hudMsgEl.textContent  = 'Tap to clear a bag. Numbers = threats touching that spot. Right-click or Mark Mode to flag.';
+
+    renderStress();
+    renderBoard();
+    spawnAgents();
+    startTick();
+  }
+
+  newGameBtn.addEventListener('click', initGame);
+  toggleMarkBtn.addEventListener('click', () => {
+    markMode = !markMode;
+    toggleMarkBtn.textContent = 'Mark Mode: ' + (markMode ? 'On' : 'Off');
+  });
+
+  initGame();
+</script>
+</body>
+</html>
